@@ -1,0 +1,12 @@
+# roles/remote_team/defaults/main.yml
+---
+version: "9.0.35"
+download_url: "http://us.mirrors.quenda.co/apache/tomcat/tomcat-9/v{{ version }}/bin/apache-tomcat-{{ version }}.tar.gz"
+
+basepath: "/usr/share"
+install_path: "{{ basepath }}/tomcat"
+tomcat_user: "tomcat"
+tomcat_group: "tomcat"
+
+tomcat_admin: "admin"
+tomcat_password: "REPLACE THIS PASSWORD! OK?"

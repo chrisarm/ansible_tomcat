@@ -1,0 +1,8 @@
+# roles/tomcat/vars/CentOS.yml
+---
+pre_install:
+  - epel-release
+  - libsemanage-python3
+  - httpd
+  - java-latest-openjdk
+

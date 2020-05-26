@@ -1,0 +1,133 @@
+# roles/tomcat/tasks/main.yml
+---
+# TODO: http://tomcat/docs/security-howto.html
+#
+- name: Check Tomcat status
+  wait_for: 
+    port: 8080
+    timeout: 1
+  register: tomcat_status
+
+- name: Show Status
+  debug:
+    msg: "{{ tomcat_status }}"
+
+- meta: end_host
+  when: tomcat_status.failed == false
+
+- include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+  tags: remote, team, server
+
+- name: Pre Install
+  package:
+    name: "{{ item }}"
+    state: installed
+  with_items: "{{ pre_install }}"
+  tags: tomcat, server
+
+- name: Update packages
+  yum:
+    name: "*"
+    state: latest
+
+- name: Create/Verify Tomcat group
+  group:
+    name: "{{ tomcat_group }}"
+
+- name: Create/Verify Tomcat user
+  user:
+    name: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    shell: /bin/false
+
+- name: Download and Unarchive Tomcat
+  unarchive:
+    remote_src: yes
+    src: "{{ download_url }}"
+    dest: "{{ basepath }}/"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  become: yes
+  tags: tomcat, server, download
+
+- name: Link Version Installed to Tomcat
+  file:
+    src: "{{ basepath }}/apache-tomcat-{{ version }}/"
+    path: "{{ install_path }}"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+
+- name: Create install path
+  file:
+    path: "{{ install_path }}"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags: tomcat, server
+
+- name: Configure Tomcat Service
+  template:
+    src: tomcat.service
+    dest: "/etc/systemd/system/tomcat.service"
+  tags: tomcat, server,  service
+
+- name: Configure Tomcat Authentication
+  template:
+    src: tomcat-users.xml
+    dest: "{{ install_path }}/conf/tomcat-users.xml"
+  tags: tomcat, server, service
+
+- name: Configure Apache
+  template:
+    src: tomcat_manager.conf
+    dest: "/etc/httpd/conf.d/tomcat_manager.conf"
+  tags: tomcat, apache, server
+
+- name: Configure Firewall (port 8080)
+  firewalld:
+    port: 8080/tcp
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Confgure SELinux- Apache -> Tomcat
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+  with_items:
+    - httpd_can_network_connect
+    - httpd_can_network_relay
+    - httpd_graceful_shutdown
+    - nis_enabled 
+
+- name: Reload Services
+  systemd:
+    daemon_reload: yes
+
+- name: Enable Tomcat Service
+  service:
+    name: tomcat
+    enabled: yes
+    state: restarted
+  tags: tomcat, service, restart
+
+- name: Enable Apache
+  service:
+    name: httpd
+    enabled: yes
+    state: restarted
+  tags: apache, restart
+
+- name: Check Tomcat status
+  wait_for:
+    port: 8080
+    timeout: 1
+  register: tomcat_status
+
+- name: Show Status
+  debug:
+    msg: "{{ tomcat_status }}"
