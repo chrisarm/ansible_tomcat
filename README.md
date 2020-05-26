@@ -17,13 +17,17 @@ This role only installs Apache Tomcat with CentOS 8 as the host server with and 
 ### IMPORTANT!
 Make sure to change the tomcat password
 
-## Example Playbook:
+## Example Playbook (tomcat.yml):
 ```
 - name: Configure Tomcat Server
   hosts: CentOS8_Tomcat_Servers
   become: yes
   roles:
     - ansible_tomcat
+```
+### Execute Playbook:
+```
+ansible-playbook tomcat.yml
 ```
 ## License
 
