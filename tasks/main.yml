@@ -7,13 +7,14 @@
     port: 8080
     timeout: 1
   register: tomcat_status
+  ignore_errors: yes
 
 - name: Show Status
   debug:
     msg: "{{ tomcat_status }}"
 
 - meta: end_host
-  when: tomcat_status.failed == false
+  when: (tomcat_status.failed is defined) and (tomcat_status.failed == false)
 
 - include_vars: "{{ item }}"
   with_first_found:
